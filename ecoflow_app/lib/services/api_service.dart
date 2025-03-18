@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = "http://192.168.0.100"; // Todo: Replace with ESP8266 IP
+  static const String baseUrl = "http://192.168.202.180";
 
   static Future<int> fetchSensorData() async {
     final url = Uri.parse("$baseUrl/sensor");
