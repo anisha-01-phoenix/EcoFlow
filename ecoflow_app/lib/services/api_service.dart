@@ -1,31 +1,122 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+import '../models/pump_activity.dart';
+import '../models/sensor_data.dart';
+
 class ApiService {
   static const String baseUrl = "http://192.168.202.180";
 
-  static Future<int> fetchSensorData() async {
-    final url = Uri.parse("$baseUrl/sensor");
-    final response = await http.get(url);
+  // Fetch current soil moisture reading
+  Future<int> fetchCurrentSoilMoisture() async {
+    final url = '$baseUrl/soil-moisture';
+    print('Calling API: GET $url');
+    final response = await http.get(Uri.parse(url));
+
     if (response.statusCode == 200) {
-      String body = response.body;
-      List<String> parts = body.split(" ");
-      int value = int.parse(parts.last.trim());
-      return value;
+      print('Response from $url: ${response.body}');
+      return int.parse(response.body);
     } else {
-      throw Exception("Failed to fetch sensor data");
+      print('Failed to fetch soil moisture. Status code: ${response.statusCode}');
+      throw Exception('Failed to fetch soil moisture');
     }
   }
 
-  static Future<bool> pumpOn() async {
-    final url = Uri.parse("$baseUrl/pumpOn");
-    final response = await http.get(url);
-    return response.statusCode == 200;
+  // Fetch soil moisture history for graph
+  Future<List<SensorData>> fetchSoilMoistureHistory() async {
+    final url = '$baseUrl/soil-moisture-history';
+    print('Calling API: GET $url');
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      print('Response from $url: ${response.body}');
+      List<dynamic> data = json.decode(response.body);
+      return data.map((item) => SensorData.fromJson(item)).toList();
+    } else {
+      print('Failed to fetch soil moisture history. Status code: ${response.statusCode}');
+      throw Exception('Failed to fetch soil moisture history');
+    }
   }
 
-  static Future<bool> pumpOff() async {
-    final url = Uri.parse("$baseUrl/pumpOff");
-    final response = await http.get(url);
-    return response.statusCode == 200;
+  // Fetch current threshold value
+  Future<int> fetchThreshold() async {
+    final url = '$baseUrl/get-threshold';
+    print('Calling API: GET $url');
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      print('Response from $url: ${response.body}');
+      return int.parse(response.body);
+    } else {
+      print('Failed to fetch threshold. Status code: ${response.statusCode}');
+      throw Exception('Failed to fetch threshold');
+    }
+  }
+
+  // Fetch pump activity timeline for graph
+  Future<List<PumpActivity>> fetchPumpActivityTimeline() async {
+    final url = '$baseUrl/pump-activity-timeline';
+    print('Calling API: GET $url');
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      print('Response from $url: ${response.body}');
+      List<dynamic> data = json.decode(response.body);
+      return data.map((item) => PumpActivity.fromJson(item)).toList();
+    } else {
+      print('Failed to fetch pump activity timeline. Status code: ${response.statusCode}');
+      throw Exception('Failed to fetch pump activity timeline');
+    }
+  }
+
+  // Fetch current pump status (ON/OFF)
+  Future<String> fetchPumpStatus() async {
+    final url = '$baseUrl/pump-status';
+    print('Calling API: GET $url');
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      print('Response from $url: ${response.body}');
+      return response.body;
+    } else {
+      print('Failed to fetch pump status. Status code: ${response.statusCode}');
+      throw Exception('Failed to fetch pump status');
+    }
+  }
+
+  // Control pump (ON/OFF)
+  Future<void> controlPump(String status) async {
+    final url = '$baseUrl/pump-control';
+    print('Calling API: POST $url');
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: {'status': status},
+    );
+
+    if (response.statusCode == 200) {
+      print('Pump control successful. Status: $status');
+    } else {
+      print('Failed to control pump. Status code: ${response.statusCode}');
+      throw Exception('Failed to control pump');
+    }
+  }
+
+  // Set soil moisture threshold
+  Future<void> setThreshold(int threshold) async {
+    final url = '$baseUrl/set-threshold';
+    print('Calling API: POST $url');
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: {'threshold': threshold.toString()},
+    );
+
+    if (response.statusCode == 200) {
+      print('Threshold set successfully: $threshold');
+    } else {
+      print('Failed to set threshold. Status code: ${response.statusCode}');
+      throw Exception('Failed to set threshold');
+    }
   }
 }

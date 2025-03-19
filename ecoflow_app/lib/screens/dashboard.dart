@@ -1,28 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../providers/pump_provider.dart';
 import '../providers/sensor_provider.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  bool _isSensorRefreshing = false;
+  bool _isPumpRefreshing = false;
 
   @override
   Widget build(BuildContext context) {
     final sensorProvider = Provider.of<SensorProvider>(context);
-    final int currentReading = sensorProvider.readings.isNotEmpty
-        ? sensorProvider.readings.last.value
-        : 1;
-    final bool pumpStatus = sensorProvider.pumpStatus;
+    final pumpProvider = Provider.of<PumpProvider>(context);
+    final int currentReading = sensorProvider.currentMoisture;
+    final String pumpStatus = pumpProvider.pumpStatus;
 
     String sensorStatusText;
     Widget sensorIcon = const SizedBox.shrink();
-    if (currentReading == 1) {
-      sensorStatusText = "Dry Soil";
-      sensorIcon = const Icon(Icons.wb_sunny, color: Colors.orange, size: 24);
-    } else if (currentReading == 0) {
-      sensorStatusText = "Wet Soil";
-      sensorIcon = const Icon(Icons.water_drop, color: Colors.blue, size: 24);
+    Color sensorTextColor;
+    if (currentReading >= 1000) {
+      sensorStatusText = "Dry Soil (${currentReading})";
+      sensorIcon = const Icon(Icons.wb_sunny, color: Colors.orange, size: 20);
+      sensorTextColor = Colors.orange.shade900;
+    } else if (currentReading >= 400 && currentReading < 1000) {
+      sensorStatusText = "Moist Soil (${currentReading})";
+      sensorIcon =
+          const Icon(Icons.grass_rounded, color: Colors.green, size: 20);
+      sensorTextColor = Colors.green.shade900;
     } else {
-      sensorStatusText = "$currentReading";
+      sensorStatusText = "Wet Soil (${currentReading})";
+      sensorIcon =
+          const Icon(Icons.water_drop_rounded, color: Colors.blue, size: 20);
+      sensorTextColor = Colors.blue.shade900;
     }
 
     return SingleChildScrollView(
@@ -82,10 +97,8 @@ class DashboardScreen extends StatelessWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          if (currentReading == 0 || currentReading == 1)
-                            sensorIcon,
-                          if (currentReading == 0 || currentReading == 1)
-                            const SizedBox(width: 8),
+                          sensorIcon,
+                          const SizedBox(width: 8),
                           AnimatedSwitcher(
                             duration: const Duration(milliseconds: 500),
                             transitionBuilder: (child, animation) =>
@@ -99,7 +112,8 @@ class DashboardScreen extends StatelessWidget {
                             child: Text(
                               sensorStatusText,
                               key: ValueKey<String>(sensorStatusText),
-                              style: const TextStyle(fontSize: 18),
+                              style: TextStyle(
+                                  fontSize: 15, color: sensorTextColor),
                             ),
                           ),
                         ],
@@ -107,9 +121,34 @@ class DashboardScreen extends StatelessWidget {
                     ],
                   ),
                   trailing: IconButton(
-                    icon: const Icon(Icons.refresh, color: Colors.green),
-                    onPressed: () {
-                      sensorProvider.refreshData();
+                    icon: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      transitionBuilder: (child, animation) =>
+                          ScaleTransition(scale: animation, child: child),
+                      child: _isSensorRefreshing
+                          ? SizedBox(
+                              key: const ValueKey('sensorLoading'),
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.blueGrey,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.refresh,
+                              key: ValueKey('sensorRefresh'),
+                              color: Colors.blueGrey,
+                            ),
+                    ),
+                    onPressed: () async {
+                      setState(() {
+                        _isSensorRefreshing = true;
+                      });
+                      await sensorProvider.fetchCurrentMoisture();
+                      setState(() {
+                        _isSensorRefreshing = false;
+                      });
                     },
                   ),
                 ),
@@ -137,17 +176,18 @@ class DashboardScreen extends StatelessWidget {
                   leading: Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: pumpStatus
+                      color: pumpStatus == "ON"
                           ? Colors.green.shade100
                           : Colors.red.shade100,
                     ),
                     padding: const EdgeInsets.all(8),
-                    child: pumpStatus
+                    child: pumpStatus == "ON"
                         ? const Icon(Icons.check_circle,
                             color: Colors.green, size: 32)
                         : const Icon(Icons.cancel, color: Colors.red, size: 32),
                   ),
-                  title: Row(
+                  title: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
                         'Pump Status',
@@ -165,12 +205,50 @@ class DashboardScreen extends StatelessWidget {
                           ),
                         ),
                         child: Text(
-                          pumpStatus ? "ON" : "OFF",
-                          key: ValueKey<bool>(pumpStatus),
-                          style: const TextStyle(fontSize: 18),
+                          pumpStatus,
+                          key: ValueKey<String>(pumpStatus),
+                          style: TextStyle(
+                              fontSize: 15,
+                              fontFamily: 'Arial',
+                              color: pumpStatus == "ON"
+                                  ? Colors.green.shade700
+                                  : Colors.red.shade700),
                         ),
                       ),
                     ],
+                  ),
+                  trailing: IconButton(
+                    icon: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      transitionBuilder: (child, animation) => ScaleTransition(
+                        scale: animation,
+                        child: child,
+                      ),
+                      child: _isPumpRefreshing
+                          ? SizedBox(
+                              key: const ValueKey('pumpLoading'),
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.blueGrey,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.refresh,
+                              key: ValueKey('pumpRefresh'),
+                              color: Colors.blueGrey,
+                            ),
+                    ),
+                    onPressed: () async {
+                      setState(() {
+                        _isPumpRefreshing = true;
+                      });
+                      await pumpProvider.fetchPumpStatus();
+                      setState(() {
+                        _isPumpRefreshing = false;
+                      });
+                    },
                   ),
                 ),
               ),

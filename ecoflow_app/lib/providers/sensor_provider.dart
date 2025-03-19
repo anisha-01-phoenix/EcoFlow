@@ -1,70 +1,64 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
 import '../models/sensor_data.dart';
 import '../services/api_service.dart';
 
 class SensorProvider with ChangeNotifier {
-  List<SensorData> _readings = [];
-  bool _pumpStatus = false;
-  Timer? _timer;
+  List<SensorData> _moistureHistory = [];
+  int _currentMoisture = 0;
+  int _moistureThreshold = 0;
+  final ApiService _apiService = ApiService();
 
-  List<SensorData> get readings => _readings;
-  bool get pumpStatus => _pumpStatus;
+  List<SensorData> get moistureHistory => _moistureHistory;
 
-  SensorProvider() {
-    // Start fetching sensor data every 10 seconds
-    _fetchSensorData();
-    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
-      _fetchSensorData();
-    });
-  }
+  int get currentMoisture => _currentMoisture;
 
-  Future<void> _fetchSensorData() async {
+  int get moistureThreshold => _moistureThreshold;
+
+  // Fetch current soil moisture
+  Future<void> fetchCurrentMoisture() async {
+    print('Fetching current soil moisture...');
     try {
-      final sensorValue = await ApiService.fetchSensorData();
-      final reading = SensorData(value: sensorValue, timestamp: DateTime.now());
-      _readings.add(reading);
-      // Limit to the latest 50 readings for the chart
-      if (_readings.length > 50) {
-        _readings.removeAt(0);
-      }
+      _currentMoisture = await _apiService.fetchCurrentSoilMoisture();
+      print('Current soil moisture fetched successfully: $_currentMoisture');
       notifyListeners();
     } catch (e) {
-      print("Error fetching sensor data: $e");
+      print("Error fetching current moisture: $e");
     }
   }
 
-  Future<void> refreshData() async {
-    await _fetchSensorData();
-  }
-
-  Future<void> turnPumpOn() async {
+  // Fetch soil moisture history
+  Future<void> fetchMoistureHistory() async {
+    print('Fetching soil moisture history...');
     try {
-      bool result = await ApiService.pumpOn();
-      if (result) {
-        _pumpStatus = true;
-        notifyListeners();
-      }
+      _moistureHistory = await _apiService.fetchSoilMoistureHistory();
+      print('Soil moisture history fetched successfully.');
+      notifyListeners();
     } catch (e) {
-      print("Error turning pump on: $e");
+      print("Error fetching soil moisture history: $e");
     }
   }
 
-  Future<void> turnPumpOff() async {
+  //Fetch Current Threshold
+  Future<void> fetchMoistureThreshold() async {
+    print('Fetching moisture threshold...');
     try {
-      bool result = await ApiService.pumpOff();
-      if (result) {
-        _pumpStatus = false;
-        notifyListeners();
-      }
+      _moistureThreshold = await _apiService.fetchThreshold();
+      print('Moisture threshold fetched successfully: $_moistureThreshold');
+      notifyListeners();
     } catch (e) {
-      print("Error turning pump off: $e");
+      print("Error fetching threshold: $e");
     }
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
+  // Set soil moisture threshold
+  Future<void> setMoistureThreshold(int threshold) async {
+    print('Setting moisture threshold to $threshold...');
+    try {
+      await _apiService.setThreshold(threshold);
+      print('Moisture threshold set successfully.');
+      notifyListeners();
+    } catch (e) {
+      print("Error setting threshold: $e");
+    }
   }
 }
