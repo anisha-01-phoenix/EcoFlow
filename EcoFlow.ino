@@ -3,18 +3,18 @@
 #include <ESP8266WebServer.h>
 #include <vector>
 
-#define ssid "ssid"          //TODO
-#define password "password"  //TODO
+#define ssid "ssid"
+#define password "password"
 
 ESP8266WebServer server(80);
 
 int sensorReading;
-const int relayPin = 5;
+const int relayPin = 4;
 const int sensorPin = A0;
-int threshold = 500;               // Default threshold value for soil moisture
+int threshold = 800;               // Default threshold value for soil moisture
 bool pumpStatus = false;           // Pump is initially off
 unsigned long previousMillis = 0;  // For timing sensor reads
-unsigned long interval = 60000;    // Reading interval (1 minute)
+unsigned long interval = 30000;    // Reading interval 
 
 // Data structure to store moisture readings and timestamps
 struct MoistureData {
@@ -83,6 +83,7 @@ void setup() {
   // Define HTTP API endpoints
   server.on("/soil-moisture", HTTP_GET, handleGetSoilMoisture);
   server.on("/pump-status", HTTP_GET, handleGetPumpStatus);
+  server.on("/get-threshold", HTTP_GET, handleGetThreshold);
   server.on("/pump-control", HTTP_POST, handlePumpControl);
   server.on("/set-threshold", HTTP_POST, handleSetThreshold);
   server.on("/soil-moisture-history", HTTP_GET, handleGetSoilMoistureHistory);
@@ -97,11 +98,10 @@ void loop() {
   // Handle OTA in the loop
   ArduinoOTA.handle();
   server.handleClient();
-
   unsigned long currentMillis = millis();
 
   // Read soil moisture sensor at regular intervals
-  if (currentMillis - previousMillis >= interval) {
+  if (currentMillis - previousMillis >= interval || currentMillis == 0) {
     previousMillis = currentMillis;
 
     // Read the signal from the soil moisture sensor
@@ -158,7 +158,7 @@ void logPumpActivity(bool state) {
 
 // GET endpoint to get current soil moisture value
 void handleGetSoilMoisture() {
-  String message = String(sensorReading);
+  String message = String(analogRead(sensorPin));
   server.send(200, "text/plain", message);
 }
 
@@ -168,15 +168,21 @@ void handleGetPumpStatus() {
   server.send(200, "text/plain", status);
 }
 
+// GET endpoint to get current soil threshold value
+void handleGetThreshold() {
+  String response = String(threshold);
+  server.send(200, "text/plain", response); 
+}
+
 // POST endpoint to control the pump manually
 void handlePumpControl() {
   if (server.hasArg("status")) {
     String status = server.arg("status");
-    if (status == "on") {
+    if (status == "ON") {
       digitalWrite(relayPin, HIGH);  // Turn pump ON
       pumpStatus = true;
       server.send(200, "text/plain", "Pump is ON");
-    } else if (status == "off") {
+    } else if (status == "OFF") {
       digitalWrite(relayPin, LOW);  // Turn pump OFF
       pumpStatus = false;
       server.send(200, "text/plain", "Pump is OFF");
@@ -204,20 +210,23 @@ void handleGetSoilMoistureHistory() {
   String jsonResponse = "[";
   for (int i = 0; i < moistureDataList.size(); i++) {
     if (i > 0) jsonResponse += ",";
-    jsonResponse += "{\"moisture\":" + String(moistureDataList[i].moisture) + ",\"timestamp\":" + String(moistureDataList[i].timestamp) + "}";
+    jsonResponse += "{\"moisture\":" + String(moistureDataList[i].moisture) + 
+                    ",\"timestamp\":" + String(moistureDataList[i].timestamp) + "}";
   }
   jsonResponse += "]";
   server.send(200, "application/json", jsonResponse);
 }
 
 
-// GET endpoint to get pump activity timeline
+// GET endpoint to get pump activity timeline 
 void handleGetPumpActivityTimeline() {
   String jsonResponse = "[";
   for (int i = 0; i < pumpActivityLog.size(); i++) {
     if (i > 0) jsonResponse += ",";
-    jsonResponse += "{\"state\":\"" + String(pumpActivityLog[i].pumpState ? "ON" : "OFF") + "\",\"timestamp\":" + String(pumpActivityLog[i].timestamp) + "}";
+    jsonResponse += "{\"state\":\"" + String(pumpActivityLog[i].pumpState ? "ON" : "OFF") + 
+                    "\",\"timestamp\":" + String(pumpActivityLog[i].timestamp) + "}";
   }
   jsonResponse += "]";
   server.send(200, "application/json", jsonResponse);
 }
+
