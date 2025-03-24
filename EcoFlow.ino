@@ -15,6 +15,7 @@ int threshold = 800;               // Default threshold value for soil moisture
 bool pumpStatus = false;           // Pump is initially off
 unsigned long previousMillis = 0;  // For timing sensor reads
 unsigned long interval = 30000;    // Reading interval 
+bool manual=false;    /// manual control
 
 // Data structure to store moisture readings and timestamps
 struct MoistureData {
@@ -83,6 +84,7 @@ void setup() {
   // Define HTTP API endpoints
   server.on("/soil-moisture", HTTP_GET, handleGetSoilMoisture);
   server.on("/pump-status", HTTP_GET, handleGetPumpStatus);
+  server.on("/manual-control", HTTP_GET, handleManualControl); // API for manual or automatic
   server.on("/get-threshold", HTTP_GET, handleGetThreshold);
   server.on("/pump-control", HTTP_POST, handlePumpControl);
   server.on("/set-threshold", HTTP_POST, handleSetThreshold);
@@ -119,6 +121,37 @@ void loop() {
       moistureDataList.erase(moistureDataList.begin());
     }
 
+void handleManualControl()
+    {
+       // add a extra button to change the status of manual .. default is off 
+    }
+if (manual)
+{
+  // POST endpoint to control the pump manually
+void handlePumpControl() {
+  if (server.hasArg("status")) {
+    String status = server.arg("status");
+    if (status == "ON") {
+      digitalWrite(relayPin, HIGH);  // Turn pump ON
+      pumpStatus = true;
+      server.send(200, "text/plain", "Pump is ON");
+    } else if (status == "OFF") {
+      digitalWrite(relayPin, LOW);  // Turn pump OFF
+      pumpStatus = false;
+      server.send(200, "text/plain", "Pump is OFF");
+    } else {
+      server.send(400, "text/plain", "Invalid status");
+    }
+  } else {
+    server.send(400, "text/plain", "Missing 'status' parameter");
+  }
+}
+  
+  
+}
+    else 
+{
+  
     // If soil is dry, turn on the relay (which powers the pump)
     if (sensorReading > threshold) {   // Soil is dry
       if (!pumpStatus) {               // If the pump is currently off, turn it on
@@ -137,6 +170,7 @@ void loop() {
         logPumpActivity(false);
       }
     }
+}
   }
 
   delay(400);  // Short delay to avoid overload
@@ -174,25 +208,7 @@ void handleGetThreshold() {
   server.send(200, "text/plain", response); 
 }
 
-// POST endpoint to control the pump manually
-void handlePumpControl() {
-  if (server.hasArg("status")) {
-    String status = server.arg("status");
-    if (status == "ON") {
-      digitalWrite(relayPin, HIGH);  // Turn pump ON
-      pumpStatus = true;
-      server.send(200, "text/plain", "Pump is ON");
-    } else if (status == "OFF") {
-      digitalWrite(relayPin, LOW);  // Turn pump OFF
-      pumpStatus = false;
-      server.send(200, "text/plain", "Pump is OFF");
-    } else {
-      server.send(400, "text/plain", "Invalid status");
-    }
-  } else {
-    server.send(400, "text/plain", "Missing 'status' parameter");
-  }
-}
+
 
 // POST endpoint to set soil moisture threshold
 void handleSetThreshold() {
