@@ -120,11 +120,27 @@ void loop() {
     if (moistureDataList.size() > 1000) {
       moistureDataList.erase(moistureDataList.begin());
     }
-
-void handleManualControl()
-    {
-       // add a extra button to change the status of manual .. default is off 
+// handle manual Control
+void handleManualControl() {
+  if (server.hasArg("mode")) {
+    String mode = server.arg("mode");
+    
+    if (mode == "ON") {
+      manual = true;
+      server.send(200, "text/plain", "Manual mode enabled");
+    } 
+    else if (mode == "OFF") {
+      manual = false;
+      server.send(200, "text/plain", "Automatic mode enabled");
+    } 
+    else {
+      server.send(400, "text/plain", "Invalid mode. Use 'ON' or 'OFF'");
     }
+  } else {
+    server.send(400, "text/plain", "Missing 'mode' parameter");
+  }
+}
+
 if (manual)
 {
   // POST endpoint to control the pump manually
