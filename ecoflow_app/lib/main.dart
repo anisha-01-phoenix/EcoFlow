@@ -1,3 +1,4 @@
+import 'package:ecoflow_app/providers/mode_provider.dart';
 import 'package:ecoflow_app/providers/pump_provider.dart';
 import 'package:ecoflow_app/providers/sensor_provider.dart';
 import 'package:ecoflow_app/screens/control.dart';
@@ -14,6 +15,7 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => SensorProvider()),
         ChangeNotifierProvider(create: (_) => PumpProvider()),
+        ChangeNotifierProvider(create: (_) => ControlModeProvider()),
       ],
       child: const MyApp(),
     ),

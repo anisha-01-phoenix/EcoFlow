@@ -11,7 +11,6 @@ class SensorProvider with ChangeNotifier {
   List<SensorData> get moistureHistory => _moistureHistory;
 
   int get currentMoisture => _currentMoisture;
-
   int get moistureThreshold => _moistureThreshold;
 
   // Fetch current soil moisture

@@ -34,16 +34,28 @@ class PumpProvider with ChangeNotifier {
     }
   }
 
-  // Control the pump (ON/OFF)
-  Future<void> controlPump(String status) async {
-    print('Controlling pump: setting status to $status...');
+  // Control the pump manually(ON/OFF)
+  Future<void> manualControl(String status) async {
+    print('Controlling pump manually: setting status to $status...');
     try {
-      await _apiService.controlPump(status);
+      await _apiService.manualControl(status);
       _pumpStatus = status.toUpperCase();
       print('Pump control successful. Status set to $_pumpStatus');
       notifyListeners();
     } catch (e) {
       print("Error controlling pump: $e");
+    }
+  }
+
+  // Control the pump automatically(ON/OFF)
+  Future<void> autoControl() async {
+    print('Controlling pump automatically...');
+    try {
+      await _apiService.autoControl();
+      print('Auto Mode SetUp Successfully!');
+      notifyListeners();
+    } catch (e) {
+      print("Error in setting up automatic pump control: $e");
     }
   }
 }

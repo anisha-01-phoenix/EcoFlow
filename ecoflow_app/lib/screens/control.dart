@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/sensor_provider.dart';
 import '../providers/pump_provider.dart';
+import '../providers/mode_provider.dart';
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
 
 class ControlScreen extends StatefulWidget {
@@ -40,7 +41,7 @@ class _ControlScreenState extends State<ControlScreen> {
       const SnackBar(content: Text('Sending pump command...')),
     );
     try {
-      await pumpProvider.controlPump(newValue ? "ON" : "OFF");
+      await pumpProvider.manualControl(newValue ? "ON" : "OFF");
       setState(() {
         _pumpStatus = newValue;
       });
@@ -106,10 +107,39 @@ class _ControlScreenState extends State<ControlScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final pumpProvider = Provider.of<PumpProvider>(context, listen: false);
+    final controlModeProvider = Provider.of<ControlModeProvider>(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              const Text(
+                'Switch to Manual Mode : ',
+                style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w600),
+              ),
+              Switch(
+                  value: controlModeProvider.isManualControl,
+                  activeColor: Colors.white,
+                  inactiveThumbColor: Colors.blueGrey,
+                  onChanged: (value) {
+                    controlModeProvider.setManualControl(value);
+                    if(!value) {
+                      pumpProvider.autoControl();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Switched to Automatic Control')),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Manual Control Enabled')),
+                      );
+                    }
+                  })
+            ],
+          ),
+          if (controlModeProvider.isManualControl)
           AnimatedContainer(
             width: double.infinity,
             duration: const Duration(milliseconds: 500),

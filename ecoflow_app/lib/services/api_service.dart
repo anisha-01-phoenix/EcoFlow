@@ -5,7 +5,7 @@ import '../models/pump_activity.dart';
 import '../models/sensor_data.dart';
 
 class ApiService {
-  static const String baseUrl = "http://192.168.202.180";
+  static const String baseUrl = "http://192.168.169.180";
 
   // Fetch current soil moisture reading
   Future<int> fetchCurrentSoilMoisture() async {
@@ -17,7 +17,8 @@ class ApiService {
       print('Response from $url: ${response.body}');
       return int.parse(response.body);
     } else {
-      print('Failed to fetch soil moisture. Status code: ${response.statusCode}');
+      print(
+          'Failed to fetch soil moisture. Status code: ${response.statusCode}');
       throw Exception('Failed to fetch soil moisture');
     }
   }
@@ -33,7 +34,8 @@ class ApiService {
       List<dynamic> data = json.decode(response.body);
       return data.map((item) => SensorData.fromJson(item)).toList();
     } else {
-      print('Failed to fetch soil moisture history. Status code: ${response.statusCode}');
+      print(
+          'Failed to fetch soil moisture history. Status code: ${response.statusCode}');
       throw Exception('Failed to fetch soil moisture history');
     }
   }
@@ -64,7 +66,8 @@ class ApiService {
       List<dynamic> data = json.decode(response.body);
       return data.map((item) => PumpActivity.fromJson(item)).toList();
     } else {
-      print('Failed to fetch pump activity timeline. Status code: ${response.statusCode}');
+      print(
+          'Failed to fetch pump activity timeline. Status code: ${response.statusCode}');
       throw Exception('Failed to fetch pump activity timeline');
     }
   }
@@ -84,9 +87,9 @@ class ApiService {
     }
   }
 
-  // Control pump (ON/OFF)
-  Future<void> controlPump(String status) async {
-    final url = '$baseUrl/pump-control';
+  // Control pump manually(ON/OFF)
+  Future<void> manualControl(String status) async {
+    final url = '$baseUrl/manual-control';
     print('Calling API: POST $url');
     final response = await http.post(
       Uri.parse(url),
@@ -99,6 +102,20 @@ class ApiService {
     } else {
       print('Failed to control pump. Status code: ${response.statusCode}');
       throw Exception('Failed to control pump');
+    }
+  }
+
+  // Control pump automatically
+  Future<void> autoControl() async {
+    final url = '$baseUrl/auto-control';
+    print('Calling API: GET $url');
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      print(response.body);
+    } else {
+      print('Failed to switch to auto mode. Status code: ${response.statusCode}');
+      throw Exception('Failed to switch to auto mode');
     }
   }
 
