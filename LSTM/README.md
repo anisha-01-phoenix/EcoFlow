@@ -41,5 +41,3 @@ Graphs show model predictions closely following training and test data trends.
 
 ---
 
-**Smart watering for happy plants! 🌿**
-
